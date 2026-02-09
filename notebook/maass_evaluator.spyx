@@ -1,0 +1,57 @@
+# **********************************************************************
+#  This is maass_evaluator, part of a portrait system for Maass forms
+#       Copyright (c) 2024 David Lowry-Duda <david@lowryduda.com>
+#       All Rights Reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see
+#                 <http://www.gnu.org/licenses/>.
+# **********************************************************************
+from sage.rings.complex_double import CDF
+from lpkbessel import besselk_dp
+
+cdef extern from "complex.h":
+    double complex _Complex_I
+
+cdef extern from "math.h":
+    double cos(double)
+    double sin(double)
+    double sqrt(double)
+
+cdef double cppi  = <double> 3.14159265358979323846264338327950288419716939
+cdef double cptwopi = <double> 6.283185307179586476925286766559005768394338
+
+class maassform:
+    def __init__(self, double spectral_parameter, int symmetry, coeffs):
+        self.r = spectral_parameter
+        self.symmetry = symmetry
+        self.coeffs = coeffs
+        if self.symmetry == 0:
+            self.trig = cos
+        else:
+            self.trig = sin
+
+    def __call__(self, double complex z, int num_coeffs=50):
+        z = CDF(z)
+        cdef double ret = 0.0
+        cdef double x
+        cdef double y
+        cdef double sqrty
+        x = z.real
+        y = z.imag
+        sqrty = sqrt(y)
+        for n, coeff in enumerate(self.coeffs[:num_coeffs], 1):
+            n = <int> n
+            coeff = <double> coeff
+            ret += coeff * sqrty * besselk_dp(self.r, cptwopi * n * y, pref=1) * self.trig(cptwopi * n * x)
+        return ret
